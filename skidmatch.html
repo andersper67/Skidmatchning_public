@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="sv">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skidmatchning</title>
+    <style>
+        /* Grundläggande CSS för utseendet (från tidigare) */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #007bff;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #e9ecef;
+        }
+
+        .grid-container {
+            margin-top: 20px;
+        }
+
+        .data-grid {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            background: white;
+        }
+
+        .data-grid th,
+        .data-grid td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        .data-grid th {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        .data-grid tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .upload-btn {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .run-btn {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .clear-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .download-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .file-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .file-input-group input[type="file"] {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        /* Nytt för kolumnmatchning */
+        .column-mapping {
+            width: 100%;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .mapping-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .mapping-item label {
+            font-weight: bold;
+            flex: 0 0 150px;
+        }
+
+        .mapping-item select {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+
+        .grid-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1.2em;
+            cursor: pointer;
+            color: #007bff;
+            padding: 5px;
+        }
+
+        .table-wrapper {
+            /* Sätter en standardhöjd för minimerat läge (ca 3-4 rader) */
+            max-height: 180px;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .table-wrapper.expanded {
+            /* Tar bort höjdbegränsningen när den är expanderad */
+            max-height: 2000px;
+            /* Stort nog att täcka allt innehåll */
+        }
+
+        .data-grid {
+            /* Flytta kantlinje från .table-wrapper till .data-grid för att undvika dubbla kanter */
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0;
+            /* Tar bort marginaler inuti wrapper */
+            border: none;
+        }
+
+        /* Lägg till en synlig nedre kantlinje för tabellen även i minimerat läge */
+        .table-wrapper:not(.expanded) .data-grid {
+            border-bottom: 1px solid #ddd;
+        }
+
+        /* Fixa så att headern alltid syns */
+        .table-wrapper table thead {
+            position: sticky;
+            top: 0;
+            background-color: #007bff;
+            z-index: 10;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>⛷️ Skidmatchningsprogram</h1>
+
+        <div class="controls">
+            <div class="file-input-group" style="width: 100%;">
+                <label for="usersFile">Ladda upp **Användare** (.csv):</label>
+                <input type="file" id="usersFile" accept=".csv" onchange="previewUserHeaders()">
+                <button class="upload-btn" onclick="uploadAndDisplay('users')">Ladda Användare och Matcha</button>
+            </div>
+
+            <div id="userMappingSection" class="column-mapping" style="display: none;">
+                <h3>Kolumnmatchning för Användare</h3>
+                <p>Matcha de obligatoriska fälten (Vänster) mot kolumnerna i din fil (Höger).</p>
+                <div id="userMappingFields">
+                </div>
+            </div>
+
+            <hr style="width: 100%; border-top: 1px solid #ccc;">
+
+            <div class="file-input-group">
+                <label for="skidorFile">Ladda upp Skidor (.csv):</label>
+                <input type="file" id="skidorFile" accept=".csv">
+                <button class="upload-btn" onclick="uploadAndDisplay('skidor')">Ladda Skidor</button>
+            </div>
+            <div class="file-input-group">
+                <label for="pjaxorFile">Ladda upp Pjäxor (.csv):</label>
+                <input type="file" id="pjaxorFile" accept=".csv">
+                <button class="upload-btn" onclick="uploadAndDisplay('pjaxor')">Ladda Pjäxor</button>
+            </div>
+            <div class="file-input-group">
+                <label for="stavarFile">Ladda upp Stavar (.csv):</label>
+                <input type="file" id="stavarFile" accept=".csv">
+                <button class="upload-btn" onclick="uploadAndDisplay('stavar')">Ladda Stavar</button>
+            </div>
+
+            <hr style="width: 100%; border-top: 1px solid #ccc;">
+
+            <button class="run-btn" onclick="runMatching()">Kör Matchning</button>
+            <button class="clear-btn" onclick="clearAllData()">Rensa All Data & LocalStorage</button>
+            <button class="download-btn" onclick="downloadAllResults()">Ladda ner Resultat (CSV)</button>
+        </div>
+
+        <div class="grid-container">
+
+            <div class="grid-header">
+                <h2>Användare (<span id="userCount">0</span>)</h2>
+                <button class="toggle-btn" onclick="toggleTable('usersTableWrapper', this)">&#x25BC;</button>
+            </div>
+            <div id="usersTableWrapper" class="table-wrapper">
+                <table id="usersGrid" class="data-grid"></table>
+            </div>
+
+            <div class="grid-header">
+                <h2>Skidor (<span id="skidorCount">0</span>)</h2>
+                <button class="toggle-btn" onclick="toggleTable('skidorTableWrapper', this)">&#x25BC;</button>
+            </div>
+            <div id="skidorTableWrapper" class="table-wrapper">
+                <table id="skidorGrid" class="data-grid"></table>
+            </div>
+
+            <div class="grid-header">
+                <h2>Pjäxor (<span id="pjaxorCount">0</span>)</h2>
+                <button class="toggle-btn" onclick="toggleTable('pjaxorTableWrapper', this)">&#x25BC;</button>
+            </div>
+            <div id="pjaxorTableWrapper" class="table-wrapper">
+                <table id="pjaxorGrid" class="data-grid"></table>
+            </div>
+
+            <div class="grid-header">
+                <h2>Stavar (<span id="stavarCount">0</span>)</h2>
+                <button class="toggle-btn" onclick="toggleTable('stavarTableWrapper', this)">&#x25BC;</button>
+            </div>
+            <div id="stavarTableWrapper" class="table-wrapper">
+                <table id="stavarGrid" class="data-grid"></table>
+            </div>
+
+            <div class="grid-header">
+                <h2>Matchningsresultat</h2>
+                <button class="toggle-btn" onclick="toggleTable('resultTableWrapper', this)">&#x25BC;</button>
+            </div>
+            <div id="resultTableWrapper" class="table-wrapper">
+                <table id="resultGrid" class="data-grid"></table>
+            </div>
+        </div>
+
+        <pre id="log" style="background: #eee; padding: 10px; border-radius: 4px; white-space: pre-wrap;"></pre>
+    </div>
+
+    <script>
+        // --- 1. Datamodeller & Konstanter ---
+        const DATA_KEYS = {
+            users: 'skiMatchUsers',
+            skidor: 'skiMatchSkidor',
+            pjaxor: 'skiMatchPjaxor',
+            stavar: 'skiMatchStavar',
+            results: 'skiMatchResults'
+        };
+
+        // Obligatoriska fält för användare (för kolumnmatchning)
+        var REQUIRED_USER_FIELDS = [
+            { id: 'Besvarat', label: 'Besvarat (Datum)', headerIndex: null },
+            { id: 'Individ', label: 'Individ (Namn)', headerIndex: null },
+            { id: 'Aktivitet', label: 'Aktivitet', headerIndex: null },
+            { id: 'Behover', label: 'Behöver Utrustning', headerIndex: null },
+            { id: 'SkoStorlek', label: 'Skostorlek', headerIndex: null },
+            { id: 'Langd', label: 'Längd (cm)', headerIndex: null }
+        ];
+
+        // NY KONSTANT: Dessa fält läggs till användarobjektet efter matchning
+        const ASSIGNED_USER_FIELDS = [
+            'tilldeladSkoStorlek',
+            'tilldeladBindning',
+            'tilldeladSkidlängd',
+            'tilldelatSkidNr',
+            'tilldeladStavlängd', // Används redan, men inkluderas här
+            'Day'                 // Används redan, men inkluderas här
+        ];
+
+        let appData = {
+            users: [],
+            skidor: [],
+            pjaxor: [],
+            stavar: [],
+            results: []
+        };
+
+        let rawUserFileText = ''; // Lagra rå text för kolumnmatchning
+
+        // --- 2. CSV Hantering (UPPDATERAD) ---
+
+        /**
+                 * Parsar CSV text till en array av JavaScript-objekt.
+                 * Hanterar kolumnmatchning och hoppar över rader som börjar med #.
+                 * @param {string} csvText - Hela innehållet i CSV-filen
+                 * @param {Object} [columnMapping=null] - En mappning från önskat fält (key) till faktiskt kolumnnamn (value).
+                 * @returns {Array<Object>} En array av objekt.
+                 */
+        const parseCSV = (csvText, columnMapping = null) => {
+            const lines = csvText.trim().split('\n').filter(line => !line.startsWith('#') && line.trim() !== '');
+
+            if (lines.length === 0) return [];
+
+            const headerLine = lines[0];
+            const dataLines = lines.slice(1);
+
+            const parseLine = (line) => {
+                // Enkel split på semikolon, tar bort omgivande citattecken
+                return line.split(';').map(v => v.trim().replace(/^"|"$/g, '').trim());
+            };
+
+            const rawHeaders = parseLine(headerLine);
+
+            if (dataLines.length === 0) return [];
+
+            const parsedData = dataLines.map(line => {
+                const values = parseLine(line);
+                const obj = {};
+
+                // 1. Parsning utan mappning (för Skidor/Pjäxor/Stavar)
+                if (!columnMapping) {
+                    rawHeaders.forEach((header, index) => {
+                        obj[header] = values[index];
+                        typeConvert(obj, header);
+                    });
+                    return obj;
+                }
+
+                // 2. Parsning MED mappning (för Användare)
+
+                // A. Hantera de fält som MÅSTE matchas (Besvarat, Individ, etc.)
+                for (const requiredField of REQUIRED_USER_FIELDS) {
+                    const targetKey = requiredField.id;
+                    const headerIndex = columnMapping[targetKey];
+
+                    if (headerIndex) {
+                        if (headerIndex !== -1) {
+                            obj[targetKey] = values[headerIndex];
+                            typeConvert(obj, targetKey);
+                        } else {
+                            obj[targetKey] = null;
+                        }
+                    } else {
+                        obj[targetKey] = null;
+                    }
+                }
+
+                // B. **NY LOGIK FÖR ATT HOPPA ÖVER RADER UTAN VÄRDE I 'BEHOVER'**
+                const behoverValue = obj['Behover'];
+                if (!behoverValue || behoverValue.trim() === '') {
+                    // Returnera ett speciellt värde (t.ex. null) för att indikera att raden ska hoppas över
+                    // Detta hanteras i .filter() efter .map()
+                    return null;
+                }
+
+                // C. Hantera de TILLDELADE fälten (tilldeladSkoStorlek, etc.) som kan finnas
+                ASSIGNED_USER_FIELDS.forEach(assignedKey => {
+                    const assignedHeaderIndex = rawHeaders.findIndex(h => h.toLowerCase() === assignedKey.toLowerCase());
+
+                    if (assignedHeaderIndex !== -1) {
+                        obj[assignedKey] = values[assignedHeaderIndex];
+                        typeConvert(obj, assignedKey);
+                    } else {
+                        obj[assignedKey] = 0;
+                    }
+                });
+
+                return obj;
+            })
+                // FILTRERA BORT RADERNA SOM SKA HOPPAS ÖVER (där vi returnerade null)
+                .filter(obj => obj !== null);
+
+            return parsedData;
+        };
+
+        // ... typeConvert funktionen behöver också uppdateras för de nya numeriska fälten ...
+
+        // UPPDATERA typeConvert:
+        const typeConvert = (obj, key) => {
+            let value = obj[key];
+            if (value === null || value === undefined) return;
+
+            // NYA numeriska fält tillagda här:
+            if (['SkoStorlek', 'Langd', 'Nr', 'Längd', 'Storlek', 'Antal', 'AntalTilldelade',
+                'tilldeladSkoStorlek', 'tilldeladSkidlängd', 'tilldelatSkidNr', 'tilldeladStavlängd'].includes(key)) {
+                const num = Number(value);
+                if (!isNaN(num) && num !== null && num !== "") {
+                    obj[key] = num;
+                }
+            } else if (key === 'Besvarat' && !isNaN(Date.parse(value))) {
+                obj[key] = new Date(value);
+            } else if (key === 'Tilldelad') {
+                obj[key] = String(value).toLowerCase() === 'true';
+            }
+        };
+
+
+        // // --- 3. Kolumnmatchning (Användare) ---
+
+        /**
+         * Läser kolumnmappningen från UI
+         * @returns {Object} En mappning från önskat fält (Langd) till faktiskt kolumnnamn.
+         */
+        const getColumnMapping = () => {
+            const mapping = {};
+            let allMatched = true;
+
+            REQUIRED_USER_FIELDS.forEach(field => {
+                const selectElement = document.getElementById(`map-${field.id}`);
+                const selectedValue = selectElement ? selectElement.value : '';
+
+                if (!selectedValue) {
+                    allMatched = false;
+                    logMessage(`Fältet '${field.label}' måste matchas mot en kolumn.`, 'error');
+                }
+                mapping[field.id] = selectedValue;
+            });
+
+            if (!allMatched) return null;
+            return mapping;
+        };
+
+        // --- 3. Kolumnmatchning (Användare) (UPPDATERAD FUNKTION) ---
+
+        /**
+         * Laddar in headrar från den uppladdade användarfilen och bygger select-listor.
+         * Visar nu ett dataexempel för varje kolumn.
+         */
+        const previewUserHeaders = async () => {
+            const fileInput = document.getElementById('usersFile');
+            const file = fileInput.files[0];
+            const mappingSection = document.getElementById('userMappingSection');
+            const mappingFields = document.getElementById('userMappingFields');
+
+            mappingSection.style.display = 'none';
+            mappingFields.innerHTML = '';
+            rawUserFileText = '';
+
+            if (!file) return;
+
+            try {
+                const fileText = await file.text();
+                rawUserFileText = fileText;
+
+                // Filtrera bort kommentarer (#) och tomma rader
+                const lines = fileText.trim().split('\n').filter(line => !line.startsWith('#') && line.trim() !== '');
+                if (lines.length < 2) { // Behöver minst 1 header och 1 data-rad
+                    logMessage('Filen verkar vara tom eller saknar data.', 'warning');
+                    return;
+                }
+
+                const headerLine = lines[0];
+                const dataLine = lines[1]; // Ta första data-raden som exempel
+
+                // Funktion för att parsa en rad (hanterar citattecken)
+                const parseLineForHeaders = (line) => {
+                    // Enkel split på semikolon, tar bort omgivande citattecken
+                    return line.split(';').map(h => h.trim().replace(/^"|"$/g, '').trim());
+                };
+
+                const rawHeaders = parseLineForHeaders(headerLine);
+                const firstDataRow = parseLineForHeaders(dataLine);
+
+                if (rawHeaders.length === 0) {
+                    logMessage('Kunde inte identifiera några kolumnrubriker.', 'warning');
+                    return;
+                }
+
+                // Bygg dropdown-listor
+                REQUIRED_USER_FIELDS.forEach(field => {
+                    const div = document.createElement('div');
+                    div.className = 'mapping-item';
+
+                    const label = document.createElement('label');
+                    label.textContent = field.label + ':';
+
+                    const select = document.createElement('select');
+                    select.id = `map-${field.id}`;
+
+                    // Lägg till ett tomt alternativ
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '--- Välj kolumn ---';
+                    select.appendChild(defaultOption);
+
+                    // Lägg till alla headrar från filen som alternativ
+                    rawHeaders.forEach((header, index) => {
+                        const option = document.createElement('option');
+                        const dataExample = firstDataRow[index] || '';
+
+                        // Sätt option.value till den råa headern
+                        // option.value = header; TODO
+                        option.value = index;
+
+                        // Visa header + dataexempel i texten
+                        option.textContent = `${header} (Exempel: ${dataExample.substring(0, 30)}${dataExample.length > 30 ? '...' : ''})`;
+
+                        // Försök gissa matchning baserat på likhet
+                        if (header.toLowerCase().includes(field.id.toLowerCase())) {
+                            select.value = header;
+                        }
+
+                        select.appendChild(option);
+                    });
+
+                    div.appendChild(label);
+                    div.appendChild(select);
+                    mappingFields.appendChild(div);
+                });
+
+                mappingSection.style.display = 'block';
+
+            } catch (error) {
+                console.error("Fel vid inläsning av headrar:", error);
+                logMessage(`Kunde inte läsa headrar från filen: ${error.message}`, 'error');
+            }
+        };
+
+        // --- 4. LocalStorage & Persistent Funktioner (Oändrad) ---
+
+        const saveDataToLocal = (key, data) => {
+            try {
+                // Här måste vi hantera att datumobjekt (Date) serialiseras korrekt för LocalStorage
+                localStorage.setItem(key, JSON.stringify(data));
+                logMessage(`Sparade ${data.length} poster till LocalStorage (${key}).`);
+            } catch (e) {
+                console.error("Kunde inte spara till LocalStorage:", e);
+                logMessage("FEL: Kunde inte spara till LocalStorage.", 'error');
+            }
+        };
+
+        const loadDataFromLocal = (key) => {
+            const data = localStorage.getItem(key);
+            const parsedData = data ? JSON.parse(data) : [];
+
+            // Konvertera Besvarat-strängar tillbaka till Date-objekt efter LocalStorage-laddning
+            if (key === DATA_KEYS.users || key === DATA_KEYS.results) {
+                return parsedData.map(item => {
+                    if (item.Besvarat && typeof item.Besvarat === 'string' && !isNaN(Date.parse(item.Besvarat))) {
+                        item.Besvarat = new Date(item.Besvarat);
+                    }
+                    return item;
+                });
+            }
+            return parsedData;
+        };
+
+        const clearAllData = () => {
+            Object.values(DATA_KEYS).forEach(key => {
+                localStorage.removeItem(key);
+            });
+            appData = { users: [], skidor: [], pjaxor: [], stavar: [], results: [] };
+            rawUserFileText = '';
+            document.getElementById('userMappingSection').style.display = 'none';
+            updateAllGrids();
+            logMessage("All data rensad från LocalStorage och Grids.");
+        };
+
+        // --- 5. UI & Händelsehantering (UPPDATERAD) ---
+
+        /**
+         * Genererar en HTML-tabell (grid) från en array av objekt.
+         */
+        const renderGrid = (tableElement, data) => {
+            tableElement.innerHTML = '';
+
+            if (data.length === 0) {
+                tableElement.innerHTML = '<tr><td>Ingen data inläst.</td></tr>';
+                return;
+            }
+
+            const headers = Object.keys(data[0]);
+
+            const thead = tableElement.createTHead();
+            const headerRow = thead.insertRow();
+            headers.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+
+            const tbody = tableElement.createTBody();
+            data.forEach(item => {
+                const row = tbody.insertRow();
+                headers.forEach(header => {
+                    const cell = row.insertCell();
+                    const value = item[header];
+                    // Formatera datum/bools/etc för visning
+                    cell.textContent = value instanceof Date ? value.toLocaleDateString('sv-SE') : (value === null ? 'N/A' : String(value));
+                });
+            });
+        };
+
+        const updateAllGrids = () => {
+            renderGrid(document.getElementById('usersGrid'), appData.users);
+            document.getElementById('userCount').textContent = appData.users.length;
+
+            renderGrid(document.getElementById('skidorGrid'), appData.skidor);
+            document.getElementById('skidorCount').textContent = appData.skidor.length;
+
+            renderGrid(document.getElementById('pjaxorGrid'), appData.pjaxor);
+            document.getElementById('pjaxorCount').textContent = appData.pjaxor.length;
+
+            renderGrid(document.getElementById('stavarGrid'), appData.stavar);
+            document.getElementById('stavarCount').textContent = appData.stavar.length;
+
+            renderGrid(document.getElementById('resultGrid'), appData.results);
+        };
+
+        /**
+         * Hanterar filuppladdning, parsing, spara till LocalStorage och uppdatera grid.
+         * @param {string} type - Typ av data ('users', 'skidor', 'pjaxor', 'stavar')
+         */
+        const uploadAndDisplay = async (type) => {
+            const inputId = `${type}File`;
+            const fileInput = document.getElementById(inputId);
+            const file = fileInput.files[0];
+
+            if (!file) {
+                logMessage(`Välj en ${type} CSV-fil först.`, 'warning');
+                return;
+            }
+
+            try {
+                let data = [];
+                let isUserFile = (type === 'users');
+
+                if (isUserFile) {
+                    const columnMapping = getColumnMapping();
+                    if (!columnMapping) {
+                        logMessage("Kan inte ladda användare: Matchningen är inte komplett.", 'error');
+                        return;
+                    }
+                    if (!rawUserFileText) {
+                        rawUserFileText = await file.text(); // Läs in rå text om den saknas
+                    }
+                    data = parseCSV(rawUserFileText, columnMapping);
+                    document.getElementById('userMappingSection').style.display = 'none';
+
+                } else {
+                    const fileText = await file.text();
+                    // Ingen mappning för skidor/pjaxor/stavar (antar att rubrikerna är korrekta)
+                    data = parseCSV(fileText, null);
+                }
+
+                if (data.length === 0) {
+                    logMessage(`Filen ${file.name} var tom eller kunde inte parsas.`, 'error');
+                    return;
+                }
+
+                // Uppdatera appData och LocalStorage
+                appData[type] = data;
+                saveDataToLocal(DATA_KEYS[type], data);
+                updateAllGrids();
+                logMessage(`Laddade in och visade ${data.length} poster för ${type}.`);
+
+            } catch (error) {
+                console.error("Fel vid filinläsning:", error);
+                logMessage(`Kunde inte läsa filen: ${error.message}`, 'error');
+            }
+        };
+
+        const logMessage = (message, type = 'info') => {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString('sv-SE');
+            logElement.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}\n` + logElement.textContent;
+        };
+
+        // --- 6. Matchningslogik (Oändrad logik, men använder nya datastrukturer) ---
+
+        const runMatching = () => {
+            // Kontrollera att all data finns
+            if (appData.users.length === 0 || appData.skidor.length === 0 || appData.pjaxor.length === 0 || appData.stavar.length === 0) {
+                logMessage("FEL: Alla datakällor (Användare, Skidor, Pjäxor, Stavar) måste laddas in först.", 'error');
+                return;
+            }
+
+            // Gör en djup kopia av datan som ska modifieras under matchningen
+            const users = JSON.parse(JSON.stringify(appData.users));
+            let skidorList = JSON.parse(JSON.stringify(appData.skidor));
+            let pjaxorList = JSON.parse(JSON.stringify(appData.pjaxor));
+            let stavarList = JSON.parse(JSON.stringify(appData.stavar));
+
+            // Logik för att sätta default värden som C# gör
+            skidorList = skidorList.map(s => ({ ...s, Tilldelad: false }));
+            pjaxorList = pjaxorList.map(p => ({ ...p, AntalTilldelade: p.AntalTilldelade || 0, Antal: p.Antal || 0 }));
+            stavarList = stavarList.map(s => ({ ...s, AntalTilldelade: s.AntalTilldelade || 0, Antal: s.Antal || 0 }));
+
+
+            // Sortering (JS Array.prototype.sort)
+            // Användare sorteras efter 'Besvarat' datum
+            users.sort((a, b) => {
+                const dateA = a.Besvarat instanceof Date ? a.Besvarat.getTime() : new Date(a.Besvarat).getTime();
+                const dateB = b.Besvarat instanceof Date ? b.Besvarat.getTime() : new Date(b.Besvarat).getTime();
+                return dateA - dateB;
+            });
+            skidorList.sort((a, b) => a.Langd - b.Langd);
+            pjaxorList.sort((a, b) => a.Storlek - b.Storlek);
+            stavarList.sort((a, b) => a.Längd - b.Längd);
+
+            const allMatchedUsers = [];
+
+            let currentDayAnvandareList = users;
+            
+            // Återställ användning för dagen
+            skidorList.forEach(s => s.Tilldelad = false);
+            pjaxorList.forEach(p => p.AntalTilldelade = 0);
+            stavarList.forEach(s => s.AntalTilldelade = 0);
+
+            logMessage(`Startar matchning för (${currentDayAnvandareList.length} användare).`);
+
+            for (const anvandare of currentDayAnvandareList) {
+                const anvandareLangd = anvandare.Langd;
+                const anvandareSkoStorlek = anvandare.SkoStorlek;
+
+                // Hoppa över om obligatoriska fält saknas eller är ogiltiga
+                if (!anvandareLangd || !anvandareSkoStorlek || anvandareLangd <= 0 || anvandareSkoStorlek <= 0) {
+                    logMessage(`Användare ${anvandare.Individ} hoppas över: saknar Längd eller Skostorlek.`, 'warning');
+                    continue;
+                }
+
+                // Matchande pjäxor: lediga, storlek == skoStorlek eller skoStorlek + 1
+                const matchedPjaxor = pjaxorList
+                    .filter(p => p.Antal > p.AntalTilldelade && (p.Storlek === anvandareSkoStorlek || p.Storlek === anvandareSkoStorlek + 1))
+                    .sort((a, b) => a.Storlek - b.Storlek); // Minsta först
+
+
+                // Matchande skidor: lediga, längd +10 till +20 cm
+                const matchedSkidor = skidorList
+                    .filter(s => (!s.Tilldelad  || s.Tilldelad === 'false' || s.Tilldelad === 'False') &&
+                        s.Langd >= anvandareLangd + 10 && s.Langd <= anvandareLangd + 20)
+                    .sort((a, b) => b.Langd - a.Langd); // Längsta först
+
+                
+                // Matchande stavar
+                const desiredStavLängd = Math.floor(anvandareLangd * 0.83);
+                const matchedStavar = stavarList
+                    .filter(s => s.Antal > s.AntalTilldelade && s.Längd >= desiredStavLängd - 3 && s.Längd <= desiredStavLängd + 3);
+
+                let isMatchFound = false;
+                let assignedSki = null;
+                let assignedPjaxa = null;
+                let assignedStav = null;
+
+                // Huvudmatchningslogik: Matchbindning (Bindning)
+                for (const skida of matchedSkidor) {
+                    if (isMatchFound) break;
+
+                    for (const pjaxa of matchedPjaxor) {
+                        if (skida.Bindning === pjaxa.Bindning) {
+                            assignedSki = skida;
+                            assignedPjaxa = pjaxa;
+                            isMatchFound = true;
+
+                            if (matchedStavar.length > 0) {
+                                assignedStav = matchedStavar[0];
+                                assignedStav.AntalTilldelade++;
+                            }
+
+                            assignedSki.Tilldelad = true;
+                            assignedPjaxa.AntalTilldelade++;
+
+                            break;
+                        }
+                    }
+                }
+
+                // Sätt matchningsresultat på användaren
+
+                anvandare.tilldelatSkidNr = assignedSki ? assignedSki.Nr : 0;
+                anvandare.tilldeladSkidlängd = assignedSki ? assignedSki.Langd : 0;
+                anvandare.tilldeladBindning = assignedSki ? assignedSki.Bindning : 'EJ MATCHAD';
+                anvandare.tilldeladSkoStorlek = assignedPjaxa ? assignedPjaxa.Storlek : 0;
+                anvandare.tilldeladStavlängd = assignedStav ? assignedStav.Längd : 0;
+
+
+                if (!isMatchFound) {
+                    logMessage(`Kunde inte matcha ${anvandare.Individ}.`, 'warning');
+                }
+
+                allMatchedUsers.push(anvandare);
+            }
+
+            // Uppdatera globalt tillstånd och spara
+            appData.users = users;
+            appData.skidor = skidorList;
+            appData.pjaxor = pjaxorList;
+            appData.stavar = stavarList;
+            appData.results = allMatchedUsers;
+
+            saveDataToLocal(DATA_KEYS.users, appData.users);
+            saveDataToLocal(DATA_KEYS.skidor, appData.skidor);
+            saveDataToLocal(DATA_KEYS.pjaxor, appData.pjaxor);
+            saveDataToLocal(DATA_KEYS.stavar, appData.stavar);
+            saveDataToLocal(DATA_KEYS.results, appData.results);
+
+            updateAllGrids();
+            logMessage("Matchning klar. Resultat sparade till LocalStorage och visas i Resultat-tabellen.");
+        };
+
+        // --- 7. Nedladdning av resultat (Oändrad) ---
+
+        const arrayToCSV = (data) => {
+            if (data.length === 0) return '';
+
+            const headers = Object.keys(data[0]);
+            const csvRows = [];
+
+            // Lägg till header-raden
+            csvRows.push(headers.join(';'));
+
+            // Lägg till datarader
+            for (const row of data) {
+                const values = headers.map(header => {
+                    let value = row[header];
+                    if (value === undefined || value === null) return '';
+                    if (value instanceof Date) return value.toLocaleString('sv-SE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(/ /g, '-').replace(/:/g, '-'); // Förenklad datumformat
+                    // Wrappa strängar med semikolon
+                    if (typeof value === 'string' && value.includes(';')) {
+                        return `"${value.replace(/"/g, '""')}"`;
+                    }
+                    return String(value);
+                });
+                csvRows.push(values.join(';'));
+            }
+
+            return csvRows.join('\n');
+        };
+
+        const downloadFile = (filename, text) => {
+            const element = document.createElement('a');
+            element.setAttribute('href', 'data:text/csv;charset=utf-8,' + encodeURIComponent(text));
+            element.setAttribute('download', filename);
+
+            element.style.display = 'none';
+            document.body.appendChild(element);
+
+            element.click();
+
+            document.body.removeChild(element);
+        };
+
+        const downloadAllResults = () => {
+            // ... (Samma som tidigare, använder nu de uppdaterade appData.results/skidor/etc)
+            if (appData.results.length > 0) {
+                const resultCSV = arrayToCSV(appData.results);
+                downloadFile('Matchning_Resultat.csv', resultCSV);
+                logMessage('Laddade ner Matchning_Resultat.csv.');
+            }
+            if (appData.skidor.length > 0) {
+                const skidorCSV = arrayToCSV(appData.skidor);
+                downloadFile('Skidor_Status.csv', skidorCSV);
+                logMessage('Laddade ner Skidor_Status.csv.');
+            }
+            if (appData.pjaxor.length > 0) {
+                const pjaxorCSV = arrayToCSV(appData.pjaxor);
+                downloadFile('Pjaxor_Status.csv', pjaxorCSV);
+                logMessage('Laddade ner Pjaxor_Status.csv.');
+            }
+            if (appData.stavar.length > 0) {
+                const stavarCSV = arrayToCSV(appData.stavar);
+                downloadFile('Stavar_Status.csv', stavarCSV);
+                logMessage('Laddade ner Stavar_Status.csv.');
+            }
+
+            if (appData.results.length === 0) {
+                logMessage('Inget matchningsresultat finns att ladda ner. Kör matchningen först.', 'warning');
+            }
+        };
+
+
+        // --- 8. Initialisering ---
+        /**
+                 * Växlar expanderat/minimerat läge för en tabell.
+                 * @param {string} wrapperId - ID:t för div-elementet som omsluter tabellen.
+                 * @param {HTMLElement} buttonElement - Knappen som klickades på.
+                 */
+        const toggleTable = (wrapperId, buttonElement) => {
+            const wrapper = document.getElementById(wrapperId);
+            const isExpanded = wrapper.classList.toggle('expanded');
+
+            // Uppdatera knappsymbolen
+            if (isExpanded) {
+                buttonElement.innerHTML = '&#x25B2;'; // Uppåtpil
+                buttonElement.title = 'Minimera tabell';
+            } else {
+                buttonElement.innerHTML = '&#x25BC;'; // Nedåtpil
+                buttonElement.title = 'Expandera tabell';
+            }
+        };
+
+        // --- 8. Initialisering (UPPDATERAD) ---
+
+        /**
+         * Sätter alla tabeller till minimerat läge vid start.
+         */
+        const minimizeAllTables = () => {
+            const wrappers = document.querySelectorAll('.table-wrapper');
+            wrappers.forEach(wrapper => {
+                // Vi vill att de ska vara minimerade (utan 'expanded' klass)
+                wrapper.classList.remove('expanded');
+
+                // Hitta den tillhörande toggle-knappen
+                const header = wrapper.previousElementSibling;
+                if (header && header.classList.contains('grid-header')) {
+                    const button = header.querySelector('.toggle-btn');
+                    if (button) {
+                        button.innerHTML = '&#x25BC;';
+                        button.title = 'Expandera tabell';
+                    }
+                }
+            });
+        };
+
+
+        const initialize = () => {
+            appData.users = loadDataFromLocal(DATA_KEYS.users);
+            appData.skidor = loadDataFromLocal(DATA_KEYS.skidor);
+            appData.pjaxor = loadDataFromLocal(DATA_KEYS.pjaxor);
+            appData.stavar = loadDataFromLocal(DATA_KEYS.stavar);
+            appData.results = loadDataFromLocal(DATA_KEYS.results);
+            updateAllGrids();
+
+            minimizeAllTables();
+            logMessage("Applikationen startad. Laddade data från LocalStorage.");
+        };
+
+        document.addEventListener('DOMContentLoaded', initialize);
+
+    </script>
+</body>
+
+</html>
