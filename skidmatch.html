@@ -106,6 +106,50 @@
             border-radius: 4px;
         }
 
+        .help-btn {
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 22px;
+            height: 22px;
+            font-size: 1em;
+            margin-left: 8px;
+            cursor: pointer;
+            vertical-align: middle;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            transition: background 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .help-btn:hover {
+            background: #0056b3;
+        }
+
+
+        .help-popover {
+            position: absolute;
+            z-index: 100;
+            background: #fff;
+            color: #222;
+            border: 1px solid #007bff;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+            padding: 16px;
+            margin-top: 6px;
+            min-width: 220px;
+            max-width: 350px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .file-input-group {
+            position: relative;
+        }
+
         /* Nytt för kolumnmatchning */
         .column-mapping {
             width: 100%;
@@ -164,7 +208,7 @@
 
         .table-wrapper.expanded {
             /* Tar bort höjdbegränsningen när den är expanderad */
-            max-height: 2000px;
+            max-height: 5000px;
             /* Stort nog att täcka allt innehåll */
         }
 
@@ -199,32 +243,81 @@
 
         <div class="controls">
             <div class="file-input-group" style="width: 100%;">
-                <label for="usersFile">Ladda upp **Användare** (.csv):</label>
+                <label for="usersFile">Ladda upp Anmälda (.csv):
+                    <button type="button" class="help-btn" onclick="toggleHelp(this)">?</button>
+                </label>
+                <div class="help-popover" style="display:none;">
+                    Här laddar du upp en CSV-fil med anmälda användare.
+                    <br /> 
+                    Filen laddas ner från https://idrott.se 
+                    <br />
+                    Admin -> Övr -> Frågeformulär.
+                    <br /> 
+                    Klicka på  "Skidskolan anmälan 2026" (men rätt år ;-)) och klicka på "Visa inkomna svar" (uppe till höger) 
+                    <br />
+                    Klicka på "Exportera sökresultatet" (ett litet moln med Nedåtpil, man kan få klicka på expandera ...) och sedan CSV för att ladda ner filen.
+                </div>
                 <input type="file" id="usersFile" accept=".csv" onchange="previewUserHeaders()">
-                <button class="upload-btn" onclick="uploadAndDisplay('users')">Ladda Användare och Matcha</button>
+                <div id="userMappingSection" class="column-mapping" style="display: none;">
+                    <h3>Kolumnmatchning för Anmälda</h3>
+                    <p>Matcha de obligatoriska fälten (Vänster) mot kolumnerna i din fil (Höger).</p>
+                    <div id="userMappingFields">
+                    </div>
+                </div>
+
+                <button class="upload-btn" onclick="uploadAndDisplay('users')">Ladda Anmälda</button>
             </div>
 
-            <div id="userMappingSection" class="column-mapping" style="display: none;">
-                <h3>Kolumnmatchning för Användare</h3>
-                <p>Matcha de obligatoriska fälten (Vänster) mot kolumnerna i din fil (Höger).</p>
-                <div id="userMappingFields">
-                </div>
-            </div>
 
             <hr style="width: 100%; border-top: 1px solid #ccc;">
 
+
             <div class="file-input-group">
-                <label for="skidorFile">Ladda upp Skidor (.csv):</label>
+                <label for="skidorFile">
+                    Ladda upp Skidor (.csv):
+                    <button type="button" class="help-btn" onclick="toggleHelp(this)">?</button>
+                </label>
+                <div class="help-popover" style="display:none;">
+                    Här laddar du upp en CSV-fil med skidor. Den måste ha följande format:
+                    Nr;Fabrikat;Langd;typ;Bindning;Tilldelad<br />
+                    20;TechnoPro;137;fjäll;SNS;<br />
+                    21;Atomic;130;fjäll;SNS;<br />
+                    22;Atomic;130;fjäll;SNS;<br />
+                    <br />
+                    <a href="Skidor.csv" download>Exempel på Skidor.csv som du justerar</a>
+                </div>
                 <input type="file" id="skidorFile" accept=".csv">
                 <button class="upload-btn" onclick="uploadAndDisplay('skidor')">Ladda Skidor</button>
             </div>
             <div class="file-input-group">
-                <label for="pjaxorFile">Ladda upp Pjäxor (.csv):</label>
+                <label for="pjaxorFile">Ladda upp Pjäxor (.csv):
+                    <button type="button" class="help-btn" onclick="toggleHelp(this)">?</button>
+                </label>
+                <div class="help-popover" style="display:none;">
+                    Här laddar du upp en CSV-fil med pjäxor. Den måste ha följande format:
+                    Storlek;Bindning;Antal;AntalTilldelade<br />
+                    25;SNS;0;<br />
+                    27;SNS;1;<br />
+                    28;SNS;2;<br />
+                    <br />
+                    <a href="Pjaxor.csv" download>Exempel på Pjaxor.csv som du justerar</a>
+                </div>
                 <input type="file" id="pjaxorFile" accept=".csv">
                 <button class="upload-btn" onclick="uploadAndDisplay('pjaxor')">Ladda Pjäxor</button>
             </div>
             <div class="file-input-group">
-                <label for="stavarFile">Ladda upp Stavar (.csv):</label>
+                <label for="stavarFile">Ladda upp Stavar (.csv):
+                    <button type="button" class="help-btn" onclick="toggleHelp(this)">?</button>
+                </label>
+                <div class="help-popover" style="display:none;">
+                    Här laddar du upp en CSV-fil med stavar. Den måste ha följande format:
+                    Langd;Antal;AntalTilldelade<br />
+                    80;5;<br />
+                    85;5;<br />
+                    90;9;<br />
+                    <br />
+                    <a href="Stavar.csv" download>Exempel på Stavar.csv som du justerar</a>
+                </div>
                 <input type="file" id="stavarFile" accept=".csv">
                 <button class="upload-btn" onclick="uploadAndDisplay('stavar')">Ladda Stavar</button>
             </div>
@@ -322,7 +415,7 @@
 
         let rawUserFileText = ''; // Lagra rå text för kolumnmatchning
 
-        // --- 2. CSV Hantering (UPPDATERAD) ---
+        // --- 2. CSV Hantering ---
 
         /**
                  * Parsar CSV text till en array av JavaScript-objekt.
@@ -410,18 +503,30 @@
 
         // ... typeConvert funktionen behöver också uppdateras för de nya numeriska fälten ...
 
-        // UPPDATERA typeConvert:
+
         const typeConvert = (obj, key) => {
             let value = obj[key];
             if (value === null || value === undefined) return;
 
             // NYA numeriska fält tillagda här:
-            if (['SkoStorlek', 'Langd', 'Nr', 'Längd', 'Storlek', 'Antal', 'AntalTilldelade',
+            if (['SkoStorlek', 'Nr', 'Storlek', 'Antal', 'AntalTilldelade',
                 'tilldeladSkoStorlek', 'tilldeladSkidlängd', 'tilldelatSkidNr', 'tilldeladStavlängd'].includes(key)) {
                 const num = Number(value);
                 if (!isNaN(num) && num !== null && num !== "") {
                     obj[key] = num;
+                } else {
+                    logMessage(`Ogiltigt numeriskt värde för fältet '${key}': '${value}'. Sätter till 0.`);
+                    obj[key] = 0; // Sätt till 0 om ogiltigt
                 }
+            } else if (key === 'Langd') {
+                // Ta bort "_cm" om det finns
+                const str = String(value).trim();
+                const match = str.match(/-?\d+(\.\d+)?/);
+                const num = match ? Number(match[0]) : NaN;
+                if (!isNaN(num) && num !== null && num !== "") {
+                    obj[key] = num;
+                }
+
             } else if (key === 'Besvarat' && !isNaN(Date.parse(value))) {
                 obj[key] = new Date(value);
             } else if (key === 'Tilldelad') {
@@ -523,21 +628,20 @@
                         const option = document.createElement('option');
                         const dataExample = firstDataRow[index] || '';
 
-                        // Sätt option.value till den råa headern
-                        // option.value = header; TODO
+                        // Sätt option.value till index i header-arrayen
                         option.value = index;
 
                         // Visa header + dataexempel i texten
                         option.textContent = `${header} (Exempel: ${dataExample.substring(0, 30)}${dataExample.length > 30 ? '...' : ''})`;
-
-                        // Försök gissa matchning baserat på likhet
-                        if (header.toLowerCase().includes(field.id.toLowerCase())) {
-                            select.value = header;
-                        }
-
                         select.appendChild(option);
                     });
 
+                    rawHeaders.forEach((header, index) => {
+                        // Försök gissa matchning baserat på likhet
+                        if (header.toLowerCase().includes(field.id.toLowerCase())) {
+                            select.selectedIndex = index + 1; // +1 för att kompensera för default option
+                        }
+                    });
                     div.appendChild(label);
                     div.appendChild(select);
                     mappingFields.appendChild(div);
@@ -588,6 +692,8 @@
             rawUserFileText = '';
             document.getElementById('userMappingSection').style.display = 'none';
             updateAllGrids();
+            const logElement = document.getElementById('log');
+            logElement.textContent = '';
             logMessage("All data rensad från LocalStorage och Grids.");
         };
 
@@ -701,7 +807,7 @@
             logElement.textContent = `[${timestamp}] [${type.toUpperCase()}] ${message}\n` + logElement.textContent;
         };
 
-        // --- 6. Matchningslogik (Oändrad logik, men använder nya datastrukturer) ---
+        // --- 6. Matchningslogik 
 
         const runMatching = () => {
             // Kontrollera att all data finns
@@ -716,11 +822,6 @@
             let pjaxorList = JSON.parse(JSON.stringify(appData.pjaxor));
             let stavarList = JSON.parse(JSON.stringify(appData.stavar));
 
-            // Logik för att sätta default värden som C# gör
-            skidorList = skidorList.map(s => ({ ...s, Tilldelad: false }));
-            pjaxorList = pjaxorList.map(p => ({ ...p, AntalTilldelade: p.AntalTilldelade || 0, Antal: p.Antal || 0 }));
-            stavarList = stavarList.map(s => ({ ...s, AntalTilldelade: s.AntalTilldelade || 0, Antal: s.Antal || 0 }));
-
 
             // Sortering (JS Array.prototype.sort)
             // Användare sorteras efter 'Besvarat' datum
@@ -731,12 +832,12 @@
             });
             skidorList.sort((a, b) => a.Langd - b.Langd);
             pjaxorList.sort((a, b) => a.Storlek - b.Storlek);
-            stavarList.sort((a, b) => a.Längd - b.Längd);
+            stavarList.sort((a, b) => a.Langd - b.Langd);
 
             const allMatchedUsers = [];
 
             let currentDayAnvandareList = users;
-            
+
             // Återställ användning för dagen
             skidorList.forEach(s => s.Tilldelad = false);
             pjaxorList.forEach(p => p.AntalTilldelade = 0);
@@ -749,28 +850,51 @@
                 const anvandareSkoStorlek = anvandare.SkoStorlek;
 
                 // Hoppa över om obligatoriska fält saknas eller är ogiltiga
-                if (!anvandareLangd || !anvandareSkoStorlek || anvandareLangd <= 0 || anvandareSkoStorlek <= 0) {
-                    logMessage(`Användare ${anvandare.Individ} hoppas över: saknar Längd eller Skostorlek.`, 'warning');
-                    continue;
+                const behoverValue = String(anvandare.Behover).toLowerCase().replace(/\s+/g, '');
+                if (behoverValue === 'skidor,pjaxor,stavar') {
+                    if (!anvandareLangd || !anvandareSkoStorlek || anvandareLangd <= 0 || anvandareSkoStorlek <= 0) {
+                        logMessage(`Användare ${anvandare.Individ} : saknar Längd eller Skostorlek.`, 'warning');
+                    }
+                } else if (behoverValue === 'pjaxor') {
+                    if (!anvandareSkoStorlek || anvandareSkoStorlek <= 0) {
+                        logMessage(`Användare ${anvandare.Individ} : saknar Skostorlek för pjäxor.`, 'warning');
+                    }
+                } else if (behoverValue === 'stavar' || behoverValue === 'skidor,stavar') {
+                    if (!anvandareLangd || anvandareLangd <= 0) {
+                        logMessage(`Användare ${anvandare.Individ} : saknar Längd för stavar/skidor.`, 'warning');
+                    }
+                } else {
+                    logMessage(`Användare ${anvandare.Individ} : ogiltigt värde i 'Behöver Utrustning': '${anvandare.Behover}'.`, 'warning');
+                    // kör vidare och försök matcha det som går
+                    // continue;
                 }
+
+
+
+
 
                 // Matchande pjäxor: lediga, storlek == skoStorlek eller skoStorlek + 1
                 const matchedPjaxor = pjaxorList
                     .filter(p => p.Antal > p.AntalTilldelade && (p.Storlek === anvandareSkoStorlek || p.Storlek === anvandareSkoStorlek + 1))
-                    .sort((a, b) => a.Storlek - b.Storlek); // Minsta först
+                    //.sort((a, b) => a.Storlek - b.Storlek); // Minsta först
+                    .sort((a, b) => b.Antal - a.Antal); // Mest tillgängliga först
 
 
                 // Matchande skidor: lediga, längd +10 till +20 cm
                 const matchedSkidor = skidorList
-                    .filter(s => (!s.Tilldelad  || s.Tilldelad === 'false' || s.Tilldelad === 'False') &&
-                        s.Langd >= anvandareLangd + 10 && s.Langd <= anvandareLangd + 20)
+                    .filter(s => (!s.Tilldelad || s.Tilldelad === 'false' || s.Tilldelad === 'False') &&
+                        s.Langd >= anvandareLangd + 10 && s.Langd < anvandareLangd + 20)
                     .sort((a, b) => b.Langd - a.Langd); // Längsta först
 
-                
+
                 // Matchande stavar
-                const desiredStavLängd = Math.floor(anvandareLangd * 0.83);
+                const desiredStavLängd1 = Math.round(anvandareLangd * 0.83);
+                const desiredStavLängd = Math.round(desiredStavLängd1 / 5) * 5;
+                logMessage(`Användare ${anvandare.Individ} : önskad stavlängd är ${desiredStavLängd1} cm. Avrundad ${desiredStavLängd} cm.`);
+
                 const matchedStavar = stavarList
-                    .filter(s => s.Antal > s.AntalTilldelade && s.Längd >= desiredStavLängd - 3 && s.Längd <= desiredStavLängd + 3);
+                    .filter(s => s.Antal > s.AntalTilldelade && s.Langd >= desiredStavLängd - 5 && s.Langd <= desiredStavLängd + 3)
+                    .sort((a, b) => b.Antal - a.Antal); // Mest tillgängliga först
 
                 let isMatchFound = false;
                 let assignedSki = null;
@@ -785,15 +909,16 @@
                         if (skida.Bindning === pjaxa.Bindning) {
                             assignedSki = skida;
                             assignedPjaxa = pjaxa;
-                            isMatchFound = true;
+                            assignedSki.Tilldelad = true;
+                            assignedPjaxa.AntalTilldelade++;
+
 
                             if (matchedStavar.length > 0) {
                                 assignedStav = matchedStavar[0];
                                 assignedStav.AntalTilldelade++;
+                                isMatchFound = true;
                             }
 
-                            assignedSki.Tilldelad = true;
-                            assignedPjaxa.AntalTilldelade++;
 
                             break;
                         }
@@ -802,11 +927,11 @@
 
                 // Sätt matchningsresultat på användaren
 
-                anvandare.tilldelatSkidNr = assignedSki ? assignedSki.Nr : 0;
-                anvandare.tilldeladSkidlängd = assignedSki ? assignedSki.Langd : 0;
+                anvandare.tilldelatSkidNr = assignedSki ? assignedSki.Nr : 'EJ MATCHAD'; // 0;
+                anvandare.tilldeladSkidlängd = assignedSki ? assignedSki.Langd : 'EJ MATCHAD'; //0;
                 anvandare.tilldeladBindning = assignedSki ? assignedSki.Bindning : 'EJ MATCHAD';
-                anvandare.tilldeladSkoStorlek = assignedPjaxa ? assignedPjaxa.Storlek : 0;
-                anvandare.tilldeladStavlängd = assignedStav ? assignedStav.Längd : 0;
+                anvandare.tilldeladSkoStorlek = assignedPjaxa ? assignedPjaxa.Storlek : 'EJ MATCHAD';//0;
+                anvandare.tilldeladStavlängd = assignedStav ? assignedStav.Langd : 'EJ MATCHAD' + desiredStavLängd; // 0;
 
 
                 if (!isMatchFound) {
@@ -961,6 +1086,21 @@
         };
 
         document.addEventListener('DOMContentLoaded', initialize);
+
+        function toggleHelp(btn) {
+            // Close any open popovers
+            document.querySelectorAll('.help-popover').forEach(pop => pop.style.display = 'none');
+            // Toggle this one
+            const popover = btn.parentElement.nextElementSibling;
+            if (popover && popover.classList.contains('help-popover')) {
+                popover.style.display = (popover.style.display === 'block') ? 'none' : 'block';
+            }
+        }
+        document.addEventListener('click', function (e) {
+            if (!e.target.classList.contains('help-btn')) {
+                document.querySelectorAll('.help-popover').forEach(pop => pop.style.display = 'none');
+            }
+        });
 
     </script>
 </body>
